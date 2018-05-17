@@ -2,7 +2,10 @@
 #include <stdarg.h>
 #include <string.h>
 
+//https://stackoverflow.com/questions/8487986/file-macro-shows-full-path
 #define __RELATIVE_FILE__ (strrchr("\\" __FILE__, '\\') + 1)
+
+//https://gcc.gnu.org/onlinedocs/gcc/Variadic-Macros.html
 #define ASSERTF(A, F, ...) if (!(A)) {assert_format (__COUNTER__, __RELATIVE_FILE__, __LINE__, __func__, #A, F, ## __VA_ARGS__);}
 
 
