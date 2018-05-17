@@ -26,57 +26,31 @@ int main(int argc, char* argv[]) {
 	);
 
 	ASSERTF (window != NULL, "Could not create window: %s", SDL_GetError());
-
+	
 	struct VkApplicationInfo applicationInfo;
-	struct VkInstanceCreateInfo instanceInfo;
-	VkInstance instance;
-
-
-	// Filling out application description:
-	// sType is mandatory
 	applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	// pNext is mandatory
 	applicationInfo.pNext = NULL;
-	// The name of our application
-	applicationInfo.pApplicationName = "Tutorial 1";
-	// The name of the engine (e.g: Game engine name)
+	applicationInfo.pApplicationName = APP_SHORT_NAME;
 	applicationInfo.pEngineName = NULL;
-	// The version of the engine
 	applicationInfo.engineVersion = 1;
-	// The version of Vulkan we're using for this application
 	applicationInfo.apiVersion = VK_API_VERSION_1_0;
-
-	// Filling out instance description:
-	// sType is mandatory
+	
+	struct VkInstanceCreateInfo instanceInfo;
 	instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	// pNext is mandatory
 	instanceInfo.pNext = NULL;
-	// flags is mandatory
 	instanceInfo.flags = 0;
-	// The application info structure is then passed through the instance
 	instanceInfo.pApplicationInfo = &applicationInfo;
-	// Don't enable and layer
 	instanceInfo.enabledLayerCount = 0;
 	instanceInfo.ppEnabledLayerNames = NULL;
-	// Don't enable any extensions
 	instanceInfo.enabledExtensionCount = 0;
 	instanceInfo.ppEnabledExtensionNames = NULL;
+	
+	VkInstance instance;
+	VkResult result = vkCreateInstance (&instanceInfo, NULL, &instance);
+	ASSERTF (result == VK_SUCCESS, "Failed to create instance: %d", result);
 
-	// Now create the desired instance
-	VkResult result = vkCreateInstance(&instanceInfo, NULL, &instance);
-	if (result != VK_SUCCESS) {
-	fprintf(stderr, "Failed to create instance: %d\n", result);
-	abort();
-	}
-
-	// The window is open: could enter program loop here (see SDL_PollEvent())
-
-	SDL_Delay(3000);  // Pause execution for 3000 milliseconds, for example
-
-	// Close and destroy the window
-	SDL_DestroyWindow(window);
-
-	// Clean up
-	SDL_Quit();
+	SDL_Delay (3000);
+	SDL_DestroyWindow (window);
+	SDL_Quit ();
 	return 0;
 }
