@@ -25,14 +25,7 @@ int main(int argc, char* argv[]) {
 		SDL_WINDOW_SHOWN
 	);
 
-	ASSERTF (window != NULL, "SDL window is null!");
-	
-	// Check that the window was successfully created
-	if (window == NULL) {
-	// In the case that the window could not be made...
-	printf("Could not create window: %s\n", SDL_GetError());
-	return 1;
-	}
+	ASSERTF (window != NULL, "Could not create window: %s", SDL_GetError());
 
 	struct VkApplicationInfo applicationInfo;
 	struct VkInstanceCreateInfo instanceInfo;
