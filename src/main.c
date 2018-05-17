@@ -8,7 +8,7 @@
 #define APP_WINDOWPOS_Y SDL_WINDOWPOS_UNDEFINED
 #define APP_WINDOW_HEIGHT 640
 #define APP_WINDOW_WIDTH 480
-
+#define APP_VK_MAX_PHYSICAL_DEVICE 10
 
 
 int main(int argc, char* argv[]) {
@@ -46,9 +46,35 @@ int main(int argc, char* argv[]) {
 	instanceInfo.ppEnabledExtensionNames = NULL;
 	
 	VkInstance instance;
-	VkResult result = vkCreateInstance (&instanceInfo, NULL, &instance);
-	ASSERTF (result == VK_SUCCESS, "Failed to create instance: %d", result);
+	{
+		VkResult result = vkCreateInstance (&instanceInfo, NULL, &instance);
+		ASSERTF (result == VK_SUCCESS, "Failed to create instance: %d", result);
+	}
 
+	VkPhysicalDevice device_array [APP_VK_MAX_PHYSICAL_DEVICE];
+	uint32_t device_count = APP_VK_MAX_PHYSICAL_DEVICE;
+	{
+		VkResult result = vkEnumeratePhysicalDevices (instance, &device_count, device_array);
+		ASSERTF (result == VK_SUCCESS, "Failed to create instance: %d", result);
+	}
+	
+	
+	// Enumerate all physical devices
+	VkPhysicalDeviceProperties properties;
+	for (uint32_t i = 0; i < device_count; i++)
+	{
+		memset (&properties, 0, sizeof (properties));
+		vkGetPhysicalDeviceProperties (device_array [i], &properties);
+		printf("Driver Version: %d\n", properties.driverVersion);
+		printf("Device Name:    %s\n", properties.deviceName);
+		printf("Device Type:    %d\n", properties.deviceType);
+		printf("API Version:    %d.%d.%d\n",
+		// See note below regarding this:
+		(properties.apiVersion>>22)&0x3FF,
+		(properties.apiVersion>>12)&0x3FF,
+		(properties.apiVersion&0xFFF));
+	}
+	
 	SDL_Delay (3000);
 	SDL_DestroyWindow (window);
 	SDL_Quit ();
