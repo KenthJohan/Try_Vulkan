@@ -13,7 +13,8 @@ project Testing_SDL is
 	
 	Main_Files :=
 	(
-		"testing_sdl.cpp"
+		"testing_sdl.cpp",
+		"testing_sdl2.cpp"
 	);
 	
 	for Main use Main_Files;
