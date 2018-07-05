@@ -1,5 +1,6 @@
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_vulkan.h>
+#include <vulkan/vulkan.h>
 
 #include <iostream>
 #include <fstream>
@@ -9,6 +10,16 @@
 #include <cstring>
 #include <cstdlib>
 #include <set>
+
+#include "debug.h"
+#include "vk1.h"
+
+#define APP_SHORT_NAME "Short app name"
+#define APP_WINDOWPOS_X SDL_WINDOWPOS_UNDEFINED
+#define APP_WINDOWPOS_Y SDL_WINDOWPOS_UNDEFINED
+#define APP_WINDOW_HEIGHT 640
+#define APP_WINDOW_WIDTH 480
+
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -52,6 +63,24 @@ void DestroyDebugReportCallbackEXT
 	}
 }
 
+
+void getRequiredExtensions (SDL_Window * window, char const * ext [], uint32_t * count)
+{
+	uint32_t i = 0;
+	ext [i] = VK_KHR_SURFACE_EXTENSION_NAME;
+	i += 1;
+	ext [i] = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
+	i += 1;
+	ASSERT_F ((*count) >= i, "count too low");
+	unsigned c = (*count) - i;
+	SDL_bool r = SDL_Vulkan_GetInstanceExtensions (window, &c, &(ext [i]));
+	ASSERT_F (r == SDL_TRUE, "SDL_Vulkan_GetInstanceExtensions failed: %s\n", SDL_GetError());
+	i += c;
+	(*count) = i;
+	TRACE_F ("getRequiredExtensions count %i", (*count));
+}
+
+
 struct QueueFamilyIndices
 {
 	int graphicsFamily = -1;
@@ -80,7 +109,7 @@ public:
     }
 
 private:
-    GLFWwindow* window;
+    SDL_Window * window;
 
     VkInstance instance;
     VkDebugReportCallbackEXT callback;
@@ -109,13 +138,32 @@ private:
     VkSemaphore imageAvailableSemaphore;
     VkSemaphore renderFinishedSemaphore;
 
-    void initWindow() {
-        glfwInit();
+    void initWindow ()
+    {
+		SDL_LogSetPriority (SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);
+		
+		{
+			SDL_bool r;
+			r = SDL_SetHint (SDL_HINT_FRAMEBUFFER_ACCELERATION, "1");
+			ASSERT_F (r == SDL_TRUE, "SDL_SetHint failed: %s\n", SDL_GetError ());
+		}
+		{
+			SDL_bool r;
+			r = SDL_SetHint (SDL_HINT_FRAMEBUFFER_ACCELERATION, "1");
+			ASSERT_F (r == SDL_TRUE, "SDL_SetHint failed: %s\n", SDL_GetError ());
+		}
 
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-
-        window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+		window = SDL_CreateWindow 
+		(
+			APP_SHORT_NAME, 
+			APP_WINDOWPOS_X, 
+			APP_WINDOWPOS_Y, 
+			APP_WINDOW_HEIGHT, 
+			APP_WINDOW_WIDTH, 
+			SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN
+		);
+		
+		ASSERT_F (window != NULL, "SDL_CreateWindow failed: %s\n", SDL_GetError ());
     }
 
     void initVulkan() {
@@ -134,11 +182,24 @@ private:
         createSemaphores();
     }
 
-    void mainLoop() {
-        while (!glfwWindowShouldClose(window)) {
-            glfwPollEvents();
+    void mainLoop ()
+    {
+		while (1)
+        {
+            SDL_Event event;
+            SDL_bool done = SDL_FALSE;
+            while (SDL_PollEvent(&event))
+            {
+                switch (event.type) {
+                case SDL_QUIT:
+                    done = SDL_TRUE;
+                    break;
+                }
+            }
+            if (done) break;
             drawFrame();
         }
+
 
         vkDeviceWaitIdle(device);
     }
@@ -171,9 +232,8 @@ private:
         vkDestroySurfaceKHR(instance, surface, nullptr);
         vkDestroyInstance(instance, nullptr);
 
-        glfwDestroyWindow(window);
-
-        glfwTerminate();
+        SDL_DestroyWindow (window);
+        SDL_Quit ();
     }
 
     void createInstance() {
@@ -193,9 +253,12 @@ private:
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
 
-        auto extensions = getRequiredExtensions();
-        createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-        createInfo.ppEnabledExtensionNames = extensions.data();
+        //auto extensions = getRequiredExtensions();
+        char const * extensions [64];
+        uint32_t ext_count = 64;
+        getRequiredExtensions (window, extensions, &ext_count);
+        createInfo.enabledExtensionCount = ext_count;
+        createInfo.ppEnabledExtensionNames = extensions;
 
         if (enableValidationLayers) {
             createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
@@ -209,23 +272,23 @@ private:
         }
     }
 
-    void setupDebugCallback() {
+    void setupDebugCallback()
+    {
         if (!enableValidationLayers) return;
 
         VkDebugReportCallbackCreateInfoEXT createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-        createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
+        createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_DEBUG_BIT_EXT;
         createInfo.pfnCallback = debugCallback;
 
-        if (CreateDebugReportCallbackEXT(instance, &createInfo, nullptr, &callback) != VK_SUCCESS) {
-            throw std::runtime_error("failed to set up debug callback!");
-        }
+		VkResult r = CreateDebugReportCallbackEXT(instance, &createInfo, nullptr, &callback);
+		ASSERT_F (r == VK_SUCCESS, "failed to set up debug callback! (%s)", VkResult_str (r));
     }
 
-    void createSurface() {
-        if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create window surface!");
-        }
+    void createSurface()
+    {
+		SDL_bool r = SDL_Vulkan_CreateSurface (window, instance, &surface);
+		ASSERT_F (r == SDL_TRUE, "failed to create window surface! %s", SDL_GetError ());
     }
 
     void pickPhysicalDevice() {
@@ -804,6 +867,10 @@ private:
         return indices;
     }
 
+
+
+
+	/*
     std::vector<const char*> getRequiredExtensions() {
         uint32_t glfwExtensionCount = 0;
         const char** glfwExtensions;
@@ -817,6 +884,7 @@ private:
 
         return extensions;
     }
+    */
 
     bool checkValidationLayerSupport() {
         uint32_t layerCount;
@@ -844,11 +912,8 @@ private:
     }
 
     static std::vector<char> readFile(const std::string& filename) {
-        std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-        if (!file.is_open()) {
-            throw std::runtime_error("failed to open file!");
-        }
+        std::ifstream file (filename, std::ios::ate | std::ios::binary);
+		ASSERT_F (file.is_open(), "failed to open file!");
 
         size_t fileSize = (size_t) file.tellg();
         std::vector<char> buffer(fileSize);
@@ -868,7 +933,8 @@ private:
     }
 };
 
-int main() {
+int main (int argc, char* argv[])
+{
     HelloTriangleApplication app;
 
     try {
@@ -880,3 +946,4 @@ int main() {
 
     return EXIT_SUCCESS;
 }
+

@@ -1,18 +1,19 @@
-project Build2 is
+project Testing_SDL is
 
-	for Languages use ("C");
+	for Languages use ("C++");
 	for Object_Dir use "obj";
 	for Exec_Dir use "bin";
 	for Source_Dirs use 
 	(
-		"src",
+		"src/common",
+		"src/testing_sdl",
 		"lib/SDL2-2.0.8/x86_64-w64-mingw32/include",
 		"C:/VulkanSDK/1.1.73.0/Include"
 	);
 	
 	Main_Files :=
 	(
-		"main.c"
+		"testing_sdl.cpp"
 	);
 	
 	for Main use Main_Files;
@@ -24,8 +25,8 @@ project Build2 is
 	end Builder;
 
 	package Compiler is
-		for Driver ("C") use "C:/Program Files/mingw-w64/x86_64-7.3.0-posix-seh-rt_v5-rev0/mingw64/bin/gcc";
-		for Switches ("C") use 
+		for Driver ("C++") use "C:/Program Files/mingw-w64/x86_64-7.3.0-posix-seh-rt_v5-rev0/mingw64/bin/g++";
+		for Switches ("C++") use 
 		(
 			--"-Wno-error=unused-function",
 			--"-Wno-missing-field-initializers",
@@ -48,7 +49,7 @@ project Build2 is
 	end Compiler;
 
 	package Linker is
-		for Driver use "C:/Program Files/mingw-w64/x86_64-7.3.0-posix-seh-rt_v5-rev0/mingw64/bin/gcc";
+		for Driver use "C:/Program Files/mingw-w64/x86_64-7.3.0-posix-seh-rt_v5-rev0/mingw64/bin/g++";
 		
 		VK_Flags := 
 		(
@@ -80,9 +81,11 @@ project Build2 is
 			"-static-libgcc"
 		);
 		
-		for Switches ("main.c") use VK_Flags & SDL_Flags;
+		for Switches ("C++") use VK_Flags & SDL_Flags;
 
 	end Linker;
 
 
-end Build2;
+end Testing_SDL;
+
+
