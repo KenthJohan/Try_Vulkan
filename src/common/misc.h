@@ -3,7 +3,7 @@
 #include "debug.h"
 
 #define COUNTOF(x) ((sizeof ((x)))/(sizeof ((x)[0])))
-
+#define BIT_STATE(x, i) ((x) & (1 << (i)))
 
 char * load_file (FILE * file)
 {
